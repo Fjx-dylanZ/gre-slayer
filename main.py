@@ -11,11 +11,11 @@ from pandas.core.indexes.api import all_indexes_same
 '''
 
 TODO LIST
-- Handle exception in time machine mode when no previous data is available
+DONE Handle exception in time machine mode when no previous data is available
+- Handle exception on saving when not initalized
 - AutoSave
 - Review Mode
 - New Words Only Mode
-- Quiz Mode
 - App Packing
 
 '''
@@ -237,8 +237,11 @@ class GreSlayer(QMainWindow):
         prompt.exec_()
     
     def timeMachinePrompt(self):
-        prompt = TimeMachine(self)
-        prompt.exec_()
+        if len(set(self.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized'])) == 0:
+            QMessageBox.critical(self, 'Warning', 'No time stamp found!', QMessageBox.Ok)
+        else:
+            prompt = TimeMachine(self)
+            prompt.exec_()
 
 class SettingPrompt(QDialog):
     def __init__(self, object):
@@ -275,6 +278,7 @@ class TimeMachine(QDialog):
         ## get the time stamp
         self.all_timeStamps = list(set(object.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized']))
         self.all_timeStamps = sorted(self.all_timeStamps, key=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), reverse=True)
+  
         ## iterate through the time stamps and get the number of correct and incorrect
         self.informative_timeStamps = {}
         for time_stamp in self.all_timeStamps:
