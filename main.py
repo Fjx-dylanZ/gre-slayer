@@ -5,7 +5,7 @@ from PyQt5 import QtGui, uic
 import pandas as pd
 import numpy as np
 from datetime import datetime
-
+import os
 from pandas.core.indexes.api import all_indexes_same
 
 '''
@@ -20,13 +20,19 @@ DONE Handle exception in time machine mode when no previous data is available
 
 '''
 class GreSlayer(QMainWindow):
+    def getFilePath(self, fileName):
+        # File Directory
+        self.file_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(self.file_dir, fileName)
+
     def __init__(self):
         super(GreSlayer, self).__init__()
+
         ''' 
         UI MAPPING
         '''
         #Load the UI file
-        uic.loadUi('data/greSlayer.ui', self)
+        uic.loadUi(self.getFilePath('data/greSlayer.ui'), self)
 
         #Define widgets
         ## Labels
@@ -74,7 +80,7 @@ class GreSlayer(QMainWindow):
 
     def fresh_initialize(self):
         # Initialize data
-        self.df = pd.read_excel('data/3000CN_ENG.xlsx').dropna(axis = 0, subset = ['Word'])
+        self.df = pd.read_excel(self.getFilePath('data/3000CN_ENG.xlsx')).dropna(axis = 0, subset = ['Word'])
         
         self.totalNum = len(self.df)
         self.initialized = False
@@ -230,7 +236,7 @@ class GreSlayer(QMainWindow):
                 event.ignore()
 
     def perform_save_df(self):
-        self.df.to_excel('data/3000CN_ENG.xlsx', index=False)
+        self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
 
     def settingPrompt(self):
         prompt = SettingPrompt(self)
@@ -246,7 +252,7 @@ class GreSlayer(QMainWindow):
 class SettingPrompt(QDialog):
     def __init__(self, object):
         super(SettingPrompt, self).__init__()
-        uic.loadUi('data/prompt.ui', self)
+        uic.loadUi(object.getFilePath('data/prompt.ui'), self)
         # initalize data
         self.number = 0
         # Define widgets
@@ -272,7 +278,7 @@ class SettingPrompt(QDialog):
 class TimeMachine(QDialog):
     def __init__(self, object):
         super(TimeMachine, self).__init__()
-        uic.loadUi('data/timeMachine.ui', self)
+        uic.loadUi(object.getFilePath('data/timeMachine.ui'), self)
         # initalize data
         self.time_stamp = None
         ## get the time stamp
