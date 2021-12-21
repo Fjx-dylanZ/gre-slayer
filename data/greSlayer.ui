@@ -216,6 +216,7 @@
      <string>GRE SLAYER</string>
     </property>
     <addaction name="actionSave"/>
+    <addaction name="actionEye_Sore"/>
    </widget>
    <widget class="QMenu" name="menuMode">
     <property name="title">
@@ -256,6 +257,16 @@
   <action name="actionTime_Machine">
    <property name="text">
     <string>Time Machine</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionEye_Sore">
+   <property name="text">
+    <string>Eye Sore</string>
    </property>
   </action>
  </widget>

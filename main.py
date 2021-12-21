@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QAction, QDialog, QSpinBox, QProgressBar, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QMessageBox, QMainWindow, QLCDNumber, QComboBox, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui, uic
+from PyQt5.QtGui import QIcon, QFont
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -12,7 +13,9 @@ from pandas.core.indexes.api import all_indexes_same
 
 TODO LIST
 DONE Handle exception in time machine mode when no previous data is available
-- Handle exception on saving when not initalized
+DONE Handle exception on saving when not initalized
+DONE Handle exception when entering time machine mode when already in time machine mode
+- customizability of fonts
 - AutoSave
 - Review Mode
 - New Words Only Mode
@@ -55,6 +58,12 @@ class GreSlayer(QMainWindow):
         self.lcd_correct = self.findChild(QLCDNumber, 'lcd_correct')
         self.lcd_incorrect = self.findChild(QLCDNumber, 'lcd_incorrect')
 
+        ## UI Size
+        self.wordFontSize = 36
+        self.phonFontSize = 13
+        self.engMFontSize = 18
+        self.cnMFontSize = 18
+
 
         # Map widgets to functions
         self.masterButton.clicked.connect(self.masterWord)
@@ -62,6 +71,7 @@ class GreSlayer(QMainWindow):
         self.meaningButton.clicked.connect(self.showMeaning)
         self.actionSave.triggered.connect(self.perform_save_df)
         self.actionTime_Machine.triggered.connect(self.timeMachinePrompt)
+        self.actionEye_Sore.triggered.connect(self.preferencesPage)
 
         '''
         INITIALIZATION
@@ -123,6 +133,7 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.df[['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)',
              'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized',
               self.timeMachine_timeStamp]].loc[lambda x: x[self.timeMachine_timeStamp] == False]
+            self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
 
             # tunr off lcd
@@ -236,18 +247,66 @@ class GreSlayer(QMainWindow):
                 event.ignore()
 
     def perform_save_df(self):
-        self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
+        if self.initialized:
+            self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
+        else:
+            # Warning
+            reply = QMessageBox.question(self, 'Message',
+                "You have not initialized the program. Do you want to save your progress anyway?", QMessageBox.Yes |
+                QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
 
-    def settingPrompt(self):
+    def settingPrompt(self): # ask user to select the number of words to memorize
         prompt = SettingPrompt(self)
         prompt.exec_()
     
     def timeMachinePrompt(self):
-        if len(set(self.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized'])) == 0:
-            QMessageBox.critical(self, 'Warning', 'No time stamp found!', QMessageBox.Ok)
+        if not self.initialized:
+            if len(set(self.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized'])) == 0:
+                QMessageBox.critical(self, 'Warning', 'No time stamp found!', QMessageBox.Ok)
+            else:
+                prompt = TimeMachine(self)
+                prompt.exec_()
         else:
-            prompt = TimeMachine(self)
-            prompt.exec_()
+            # Warning
+            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
+
+    def preferencesPage(self):
+        prompt = Preferences(self)
+        prompt.exec_()
+
+class Preferences(QDialog):
+    def __init__(self, parent):
+        super(Preferences, self).__init__(parent)
+        self.parent = parent
+        uic.loadUi(self.parent.getFilePath('data/preferences.ui'), self)
+        # initialize spinbox value
+        self.wordSize_spin.setValue(self.parent.wordFontSize)
+        self.phoSize_spin.setValue(self.parent.phonFontSize)
+        self.engSize_spin.setValue(self.parent.engMFontSize)
+        self.cnSize_spin.setValue(self.parent.cnMFontSize)
+
+        self.buttonBox.accepted.connect(self.on_accept)
+        self.buttonBox.rejected.connect(self.close)
+        self.show()
+
+    def on_accept(self):
+        self.parent.wordFontSize = self.wordSize_spin.value()
+        self.parent.phonFontSize = self.phoSize_spin.value()
+        self.parent.engMFontSize = self.engSize_spin.value()
+        self.parent.cnMFontSize = self.cnSize_spin.value()
+        self.update_fonts()
+        self.close()
+    
+    def update_fonts(self):
+        self.parent.label_word.setFont(QFont('.AppleSystemUIFont', self.parent.wordFontSize))
+        self.parent.label_phonetic.setFont(QFont('.AppleSystemUIFont', self.parent.phonFontSize))
+        self.parent.label_engMeaning.setFont(QFont('.AppleSystemUIFont', self.parent.engMFontSize))
+        self.parent.label_cnMeaning.setFont(QFont('.AppleSystemUIFont', self.parent.cnMFontSize))
+
+    
+        
 
 class SettingPrompt(QDialog):
     def __init__(self, object):
