@@ -217,12 +217,13 @@
     </property>
     <addaction name="actionSave"/>
     <addaction name="actionEye_Sore"/>
+    <addaction name="actionFile_Directory"/>
    </widget>
    <widget class="QMenu" name="menuMode">
     <property name="title">
      <string>Mode</string>
     </property>
-    <addaction name="actionDefault"/>
+    <addaction name="actionMeaning"/>
     <addaction name="actionNew_Words_Only"/>
     <addaction name="actionReview_Mode"/>
     <addaction name="actionTime_Machine"/>
@@ -239,9 +240,15 @@
     <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="actionDefault">
+  <action name="actionMeaning">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>Default</string>
+    <string>Meaning</string>
    </property>
   </action>
   <action name="actionNew_Words_Only">
@@ -266,7 +273,12 @@
   </action>
   <action name="actionEye_Sore">
    <property name="text">
-    <string>Eye Sore</string>
+    <string>Sored Eye?</string>
+   </property>
+  </action>
+  <action name="actionFile_Directory">
+   <property name="text">
+    <string>File Directory</string>
    </property>
   </action>
  </widget>

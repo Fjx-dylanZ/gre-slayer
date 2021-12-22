@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>580</width>
     <height>300</height>
    </rect>
   </property>
@@ -19,12 +19,15 @@
      <item>
       <widget class="QLabel" name="wordSize_label">
        <property name="text">
-        <string>Word Font Size:</string>
+        <string>Word Font:</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QFontComboBox" name="word_fontComboBox"/>
      </item>
      <item>
       <widget class="QSpinBox" name="wordSize_spin">
@@ -39,6 +42,16 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="word_checkBox">
+       <property name="text">
+        <string>System Font</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -46,12 +59,15 @@
      <item>
       <widget class="QLabel" name="phoSize_label">
        <property name="text">
-        <string>Phonetic Font Size:</string>
+        <string>Phonetic Font:</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QFontComboBox" name="pho_fontComboBox"/>
      </item>
      <item>
       <widget class="QSpinBox" name="phoSize_spin">
@@ -66,6 +82,16 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="pho_checkBox">
+       <property name="text">
+        <string>System Font</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -73,12 +99,15 @@
      <item>
       <widget class="QLabel" name="engSize_label">
        <property name="text">
-        <string>English Meaning Font Size:</string>
+        <string>English Meaning Font:</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QFontComboBox" name="eng_fontComboBox"/>
      </item>
      <item>
       <widget class="QSpinBox" name="engSize_spin">
@@ -93,6 +122,16 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="eng_checkBox">
+       <property name="text">
+        <string>System Font</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -100,12 +139,15 @@
      <item>
       <widget class="QLabel" name="cnSize_label">
        <property name="text">
-        <string>CN Meaning Font Size:</string>
+        <string>CN Meaning Font:</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QFontComboBox" name="cn_fontComboBox"/>
      </item>
      <item>
       <widget class="QSpinBox" name="cnSize_spin">
@@ -117,6 +159,16 @@
        </property>
        <property name="value">
         <number>18</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="cn_checkBox">
+       <property name="text">
+        <string>System Font</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

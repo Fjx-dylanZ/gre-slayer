@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QAction, QDialog, QSpinBox, QProgressBar, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QMessageBox, QMainWindow, QLCDNumber, QComboBox, QDialogButtonBox
+from PyQt5.QtWidgets import QApplication, QAction, QDialog, QSpinBox, QProgressBar, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QMessageBox, QMainWindow, QLCDNumber, QComboBox, QDialogButtonBox, QWidget, QFileDialog
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui, uic
 from PyQt5.QtGui import QIcon, QFont
@@ -15,7 +15,8 @@ TODO LIST
 DONE Handle exception in time machine mode when no previous data is available
 DONE Handle exception on saving when not initalized
 DONE Handle exception when entering time machine mode when already in time machine mode
-- customizability of fonts
+DONE custom data file directory
+DONE customizability of fonts
 - AutoSave
 - Review Mode
 - New Words Only Mode
@@ -63,6 +64,10 @@ class GreSlayer(QMainWindow):
         self.phonFontSize = 13
         self.engMFontSize = 18
         self.cnMFontSize = 18
+        self.wordFont = '.AppleSystemUIFont'
+        self.phonFont = '.AppleSystemUIFont'
+        self.engMFont = '.AppleSystemUIFont'
+        self.cnMFont = '.AppleSystemUIFont'
 
 
         # Map widgets to functions
@@ -72,7 +77,8 @@ class GreSlayer(QMainWindow):
         self.actionSave.triggered.connect(self.perform_save_df)
         self.actionTime_Machine.triggered.connect(self.timeMachinePrompt)
         self.actionEye_Sore.triggered.connect(self.preferencesPage)
-
+        self.actionFile_Directory.triggered.connect(self.fileDirectorySelect)
+        self.actionMeaning.triggered.connect(self.meaningToggle)
         '''
         INITIALIZATION
         '''
@@ -82,15 +88,29 @@ class GreSlayer(QMainWindow):
         self.lcd_incorrect.display(0)
         self.mode = 'Default'
         self.timeMachine_timeStamp = None;
+        self.file_path = None
+        self.initialized = False
+        self.first_time = True
+        self.wordOnly = False
+        
+
+        # check if the data file (".slayerData") exists
+        if os.path.isfile(self.getFilePath('.slayerData')):
+            self.first_time = False
+            with open(self.getFilePath('.slayerData'), 'r') as f:
+                self.file_path = f.readline()
+        else:
+            print(self.getFilePath('.slayerData'))
+            self.first_time = True
+            self.fileDirectorySelect()
 
         self.fresh_initialize()
-
         # show the window
         self.show()
 
     def fresh_initialize(self):
         # Initialize data
-        self.df = pd.read_excel(self.getFilePath('data/3000CN_ENG.xlsx')).dropna(axis = 0, subset = ['Word'])
+        self.df = pd.read_excel(self.file_path).dropna(axis = 0, subset = ['Word'])
         
         self.totalNum = len(self.df)
         self.initialized = False
@@ -212,8 +232,9 @@ class GreSlayer(QMainWindow):
             '''
             Retrieve the meaning of the word and update the labels
             '''
-            self.label_engMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (English)'])
-            self.label_cnMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (w/ POS)'])
+            if not self.wordOnly:
+                self.label_engMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (English)'])
+                self.label_cnMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (w/ POS)'])
             self.clicked_word = True
             self.masterButton.setEnabled(True)
             self.unmasterButton.setEnabled(True)
@@ -257,6 +278,17 @@ class GreSlayer(QMainWindow):
             if reply == QMessageBox.Yes:
                 self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
 
+    def meaningToggle(self):
+        if self.actionMeaning.isChecked():
+            self.wordOnly = False
+            if self.initialized:
+                self.label_engMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (English)'])
+                self.label_cnMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (w/ POS)'])
+        else:
+            self.wordOnly = True
+            self.label_engMeaning.setText('')
+            self.label_cnMeaning.setText('')
+
     def settingPrompt(self): # ask user to select the number of words to memorize
         prompt = SettingPrompt(self)
         prompt.exec_()
@@ -275,6 +307,25 @@ class GreSlayer(QMainWindow):
     def preferencesPage(self):
         prompt = Preferences(self)
         prompt.exec_()
+    
+    def fileDirectorySelect(self):
+        if not self.initialized:
+
+            if self.first_time:
+                QMessageBox.information(self, 'Message', 'Please select the directory of your GRE Vcoab first!', QMessageBox.Ok)
+
+            file_path = QFileDialog.getOpenFileName(self, 'Open File', './', 'Excel Files (*.xlsx)')[0]
+            if file_path != '':
+                self.file_path = file_path
+                #update .slayerData file
+                with open(self.getFilePath('.slayerData'), 'w') as f:
+                    f.write(file_path)
+            else:
+                QMessageBox.critical(self, 'Warning', 'Please select a valid file!', QMessageBox.Ok)
+                sys.exit()
+
+        else:
+            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to change the file path', QMessageBox.Ok)
 
 class Preferences(QDialog):
     def __init__(self, parent):
@@ -286,6 +337,11 @@ class Preferences(QDialog):
         self.phoSize_spin.setValue(self.parent.phonFontSize)
         self.engSize_spin.setValue(self.parent.engMFontSize)
         self.cnSize_spin.setValue(self.parent.cnMFontSize)
+        # initialize font combobox
+        self.word_fontComboBox.setCurrentFont(QFont(self.parent.wordFont, self.parent.wordFontSize))
+        self.pho_fontComboBox.setCurrentFont(QFont(self.parent.phonFont, self.parent.phonFontSize))
+        self.eng_fontComboBox.setCurrentFont(QFont(self.parent.engMFont, self.parent.engMFontSize))
+        self.cn_fontComboBox.setCurrentFont(QFont(self.parent.cnMFont, self.parent.cnMFontSize))
 
         self.buttonBox.accepted.connect(self.on_accept)
         self.buttonBox.rejected.connect(self.close)
@@ -296,14 +352,36 @@ class Preferences(QDialog):
         self.parent.phonFontSize = self.phoSize_spin.value()
         self.parent.engMFontSize = self.engSize_spin.value()
         self.parent.cnMFontSize = self.cnSize_spin.value()
+
+        # functionalize later
+        if self.word_checkBox.isChecked():
+            self.parent.wordFont = ".AppleSystemUIFont"
+        else:
+            self.parent.wordFont = self.word_fontComboBox.currentFont().toString().split(',')[0]
+        
+        if self.pho_checkBox.isChecked():
+            self.parent.phonFont = ".AppleSystemUIFont"
+        else:
+            self.parent.phonFont = self.pho_fontComboBox.currentFont().toString().split(',')[0]
+        
+        if self.eng_checkBox.isChecked():
+            self.parent.engMFont = ".AppleSystemUIFont"
+        else:
+            self.parent.engMFont = self.eng_fontComboBox.currentFont().toString().split(',')[0]
+
+        if self.cn_checkBox.isChecked():
+            self.parent.cnMFont = ".AppleSystemUIFont"
+        else:
+            self.parent.cnMFont = self.cn_fontComboBox.currentFont().toString().split(',')[0]
+        
         self.update_fonts()
         self.close()
     
     def update_fonts(self):
-        self.parent.label_word.setFont(QFont('.AppleSystemUIFont', self.parent.wordFontSize))
-        self.parent.label_phonetic.setFont(QFont('.AppleSystemUIFont', self.parent.phonFontSize))
-        self.parent.label_engMeaning.setFont(QFont('.AppleSystemUIFont', self.parent.engMFontSize))
-        self.parent.label_cnMeaning.setFont(QFont('.AppleSystemUIFont', self.parent.cnMFontSize))
+        self.parent.label_word.setFont(QFont(self.parent.wordFont, self.parent.wordFontSize))
+        self.parent.label_phonetic.setFont(QFont(self.parent.phonFont, self.parent.phonFontSize))
+        self.parent.label_engMeaning.setFont(QFont(self.parent.engMFont, self.parent.engMFontSize))
+        self.parent.label_cnMeaning.setFont(QFont(self.parent.cnMFont, self.parent.cnMFontSize))
 
     
         
@@ -378,7 +456,6 @@ class TimeMachine(QDialog):
         object.timeMachine_timeStamp = self.time_stamp
         object.update_initilized("Time Machine")
         self.close()
-    
 
 
 

@@ -1,4 +1,4 @@
 venv/
 .idea
 .DS_Store
-data/3000CN_ENG.xlsx
+.slayerData
