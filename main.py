@@ -248,6 +248,9 @@ class GreSlayer(QMainWindow):
             self.showMeaning()
         if e.key() == Qt.Key_Slash:
             self.unmasterWord()
+        if e.key() == Qt.Key_Semicolon:
+            self.actionMeaning.setChecked(not self.actionMeaning.isChecked())
+            self.meaningToggle()
     
     def closeEvent(self, event):
         if (self.initialized) and (self.i > 0): # handle some special cases
