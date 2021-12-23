@@ -210,23 +210,26 @@ class GreSlayer(QMainWindow):
     
     def masterWord(self):
         '''update df stats'''
-        self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = True
-        self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] += 1
-        if self.mode == 'Default':
-            self.today_correct_total += 1
-            self.lcd_correct.display(self.today_correct_total)
-        self.next_word()
+        if self.clicked_word:
+            self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = True
+            self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] += 1
+            if self.mode == 'Default':
+                self.today_correct_total += 1
+                self.lcd_correct.display(self.today_correct_total)
+            self.next_word()
         
     def unmasterWord(self):
         '''update df stats'''
-        self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = False
-        self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] += 1
-        if self.mode == 'Default':
-            self.today_incorrect_total += 1
-            self.lcd_incorrect.display(self.today_incorrect_total)
-        self.next_word()
+        if self.clicked_word:
+            self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = False
+            self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] += 1
+            if self.mode == 'Default':
+                self.today_incorrect_total += 1
+                self.lcd_incorrect.display(self.today_incorrect_total)
+            self.next_word()
 
     def showMeaning(self):
+        #print(self.df.info())
         if not self.initialized:
             self.settingPrompt()
         else:
