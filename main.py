@@ -37,7 +37,8 @@ class GreSlayer(QMainWindow):
         '''
         #Load the UI file
         uic.loadUi(self.getFilePath('data/greSlayer.ui'), self)
-
+        # Set windown title
+        self.setWindowTitle('GRE Slayer')
         #Define widgets
         ## Labels
         self.label_word = self.findChild(QLabel, 'word_label')
@@ -272,14 +273,14 @@ class GreSlayer(QMainWindow):
 
     def perform_save_df(self):
         if self.initialized:
-            self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
+            self.df.to_excel(self.file_path, index=False)
         else:
             # Warning
             reply = QMessageBox.question(self, 'Message',
                 "You have not initialized the program. Do you want to save your progress anyway?", QMessageBox.Yes |
                 QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.df.to_excel(self.getFilePath('data/3000CN_ENG.xlsx'), index=False)
+                self.df.to_excel(self.file_path, index=False)
 
     def meaningToggle(self):
         if self.actionMeaning.isChecked():
