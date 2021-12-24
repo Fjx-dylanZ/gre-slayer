@@ -1,13 +1,14 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QAction, QDialog, QSpinBox, QProgressBar, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QMessageBox, QMainWindow, QLCDNumber, QComboBox, QDialogButtonBox, QWidget, QFileDialog
+from PyQt5.QtWidgets import QApplication, QAction, QDialog, QSpinBox, QProgressBar, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QGridLayout, QMessageBox, QMainWindow, QLCDNumber, QComboBox, QDialogButtonBox, QWidget, QFileDialog, QPlainTextEdit
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui, uic
 from PyQt5.QtGui import QIcon, QFont
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import json
 import os
-from pandas.core.indexes.api import all_indexes_same
+import subprocess
 
 '''
 
@@ -29,6 +30,18 @@ class GreSlayer(QMainWindow):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(self.file_dir, fileName)
 
+    def first_time_check(self):
+        try:
+            with open(self.getFilePath('.slayerData'), 'r') as f:
+                self.slayerJSON = json.loads(f.readline())
+                self.file_path = self.slayerJSON['file_path']
+                if self.version != self.slayerJSON['version']:
+                    raise Exception('Version Mismatch')
+        except:
+            self.first_time = True
+            self.fileDirectorySelect()
+            self.versionUpdate()
+
     def __init__(self):
         super(GreSlayer, self).__init__()
 
@@ -45,11 +58,16 @@ class GreSlayer(QMainWindow):
         self.label_phonetic = self.findChild(QLabel, 'phonetic_label')
         self.label_engMeaning = self.findChild(QLabel, 'engMean_label')
         self.label_cnMeaning = self.findChild(QLabel, 'cnMean_label')
+        self.label_annot = self.findChild(QLabel, 'annot_label')
 
         ## Buttons
         self.masterButton = self.findChild(QPushButton, 'masterButton')
         self.unmasterButton = self.findChild(QPushButton, 'unmasterButton')
         self.meaningButton = self.findChild(QPushButton, 'meaningButton')
+        self.annotButton = self.findChild(QPushButton, 'annotButton')
+
+        ## Annotation Text Edit
+        self.annotText = self.findChild(QPlainTextEdit, 'annot_plainTextEdit')
 
         ## Progress bar
         self.progressBar = self.findChild(QProgressBar, 'progressBar')
@@ -65,45 +83,50 @@ class GreSlayer(QMainWindow):
         self.phonFontSize = 13
         self.engMFontSize = 18
         self.cnMFontSize = 18
+        self.annotFontSize = 19
         self.wordFont = '.AppleSystemUIFont'
         self.phonFont = '.AppleSystemUIFont'
         self.engMFont = '.AppleSystemUIFont'
         self.cnMFont = '.AppleSystemUIFont'
+        self.annotFont = '.AppleSystemUIFont'
 
 
         # Map widgets to functions
         self.masterButton.clicked.connect(self.masterWord)
         self.unmasterButton.clicked.connect(self.unmasterWord)
         self.meaningButton.clicked.connect(self.showMeaning)
+        self.annotButton.clicked.connect(self.annotate)
         self.actionSave.triggered.connect(self.perform_save_df)
         self.actionTime_Machine.triggered.connect(self.timeMachinePrompt)
         self.actionEye_Sore.triggered.connect(self.preferencesPage)
         self.actionFile_Directory.triggered.connect(self.fileDirectorySelect)
         self.actionMeaning.triggered.connect(self.meaningToggle)
+        self.actionAnnotate.triggered.connect(self.annotToggle)
+        self.actionDictionary.triggered.connect(self.dictLookUp)
         '''
         INITIALIZATION
         '''
+        self.version = '0.0.2'
+        self.dataFeatures = ['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized', 'Annotation']
         self.today_correct_total = 0
         self.today_incorrect_total = 0
         self.lcd_correct.display(0)
         self.lcd_incorrect.display(0)
         self.mode = 'Default'
         self.timeMachine_timeStamp = None;
-        self.file_path = None
-        self.initialized = False
-        self.first_time = True
-        self.wordOnly = False
+        self.file_path = None # file path of the data file
+        self.initialized = False 
+        self.first_time = True # first time using the program
+        self.wordOnly = False # if true, only show words, no meaning, annotation
         
+        # hide annotation text edit layout
+        self.annotText.setVisible(False)
+        self.annotButton.setVisible(False)
+        #self.label_annot.setVisible(False)
 
-        # check if the data file (".slayerData") exists
-        if os.path.isfile(self.getFilePath('.slayerData')):
-            self.first_time = False
-            with open(self.getFilePath('.slayerData'), 'r') as f:
-                self.file_path = f.readline()
-        else:
-            print(self.getFilePath('.slayerData'))
-            self.first_time = True
-            self.fileDirectorySelect()
+
+        # check if the data file (".slayerData") integrity is intact
+        self.first_time_check()
 
         self.fresh_initialize()
         # show the window
@@ -131,6 +154,7 @@ class GreSlayer(QMainWindow):
         ## Labels
         self.label_word.setText('')
         self.label_phonetic.setText('')
+        self.label_annot.setText('')
         self.label_engMeaning.setText('')
         self.label_cnMeaning.setText('')
         ## Buttons
@@ -151,9 +175,7 @@ class GreSlayer(QMainWindow):
 
         elif mode == "Time Machine":
             self.mode = 'Time Machine'
-            self.sample_df = self.df[['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)',
-             'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized',
-              self.timeMachine_timeStamp]].loc[lambda x: x[self.timeMachine_timeStamp] == False]
+            self.sample_df = self.df[self.dataFeatures + [self.timeMachine_timeStamp]].loc[lambda x: x[self.timeMachine_timeStamp] == False]
             self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
 
@@ -169,6 +191,18 @@ class GreSlayer(QMainWindow):
         self.label_word.setText(self.sample_df.iloc[self.i]['Word'])
         self.label_phonetic.setText(self.sample_df.iloc[self.i]['US Phonetics'])
         self.lcd_overall.display(round(self.sample_df.iloc[self.i]['Total Correct']/self.sample_df.iloc[self.i]['Total Memorized'], 2))
+    
+    def annotate(self):
+        if not self.initialized: return
+        if self.annotText.toPlainText() == '': return
+        annotate_text = self.annotText.toPlainText()
+        self.df.loc[self.sample_df.iloc[self.i].name, 'Annotation'] = annotate_text
+        self.label_annot.setText(annotate_text)
+        self.label_annot.setVisible(True)
+        self.annotText.clear()
+        #set focus elsewhere
+        self.label_word.setFocus()
+
 
     def next_word(self):
         # update df first
@@ -182,6 +216,8 @@ class GreSlayer(QMainWindow):
         # remove meaning on screen
         self.label_engMeaning.setText('')
         self.label_cnMeaning.setText('')
+        self.label_annot.setText('')
+        self.label_annot.setVisible(False)
         # update lcd number
         if self.mode == 'Default':
             self.lcd_today.display(round(self.today_correct_total/(self.today_correct_total+self.today_incorrect_total), 2))
@@ -207,9 +243,11 @@ class GreSlayer(QMainWindow):
         self.label_phonetic.setText(self.sample_df.iloc[self.i]['US Phonetics'])
         # update lcd number, total ratio
         self.lcd_overall.display(round(self.sample_df.iloc[self.i]['Total Correct']/self.sample_df.iloc[self.i]['Total Memorized'], 2))
+        self.label_word.setFocus() # necessary if annotation mode is on
     
     def masterWord(self):
         '''update df stats'''
+        self.masterButton.setFocus()
         if self.clicked_word:
             self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = True
             self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] += 1
@@ -220,7 +258,10 @@ class GreSlayer(QMainWindow):
         
     def unmasterWord(self):
         '''update df stats'''
+        self.unmasterButton.setFocus()
         if self.clicked_word:
+            #if self.actionAnnotate.isChecked():
+            #    self.annotText.setEnabled(False) # hacky, change later
             self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = False
             self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] += 1
             if self.mode == 'Default':
@@ -230,6 +271,7 @@ class GreSlayer(QMainWindow):
 
     def showMeaning(self):
         #print(self.df.info())
+        self.label_word.setFocus()
         if not self.initialized:
             self.settingPrompt()
         else:
@@ -237,24 +279,33 @@ class GreSlayer(QMainWindow):
             Retrieve the meaning of the word and update the labels
             '''
             if not self.wordOnly:
+                annotation = self.df.loc[self.sample_df.iloc[self.i].name, 'Annotation']
+                self.label_annot.setVisible(not pd.isnull(annotation))
                 self.label_engMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (English)'])
                 self.label_cnMeaning.setText(self.sample_df.iloc[self.i]['Paraphrase (w/ POS)'])
+                self.label_annot.setText((lambda _: _ if not pd.isnull(_) else '')(annotation))
+
             self.clicked_word = True
             self.masterButton.setEnabled(True)
             self.unmasterButton.setEnabled(True)
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
-            self.close()
+            self.changeFocus()
         if e.key() == Qt.Key_Comma:
-            self.masterWord()
+            self.masterButton.click()
         if e.key() == Qt.Key_Period:
-            self.showMeaning()
+            self.meaningButton.click()
         if e.key() == Qt.Key_Slash:
-            self.unmasterWord()
+            self.unmasterButton.click()
         if e.key() == Qt.Key_Semicolon:
             self.actionMeaning.setChecked(not self.actionMeaning.isChecked())
             self.meaningToggle()
+        if e.key() == Qt.Key_Return:
+            if self.actionAnnotate.isChecked():
+                print('annotate')
+                self.annotText.setFocus()
+
     
     def closeEvent(self, event):
         if (self.initialized) and (self.i > 0): # handle some special cases
@@ -296,6 +347,19 @@ class GreSlayer(QMainWindow):
             self.label_engMeaning.setText('')
             self.label_cnMeaning.setText('')
 
+    def annotToggle(self):
+        if not self.initialized:
+            self.actionAnnotate.setChecked(False)
+            return
+        self.annotButton.setEnabled(self.actionAnnotate.isChecked())
+        self.annotButton.setVisible(self.actionAnnotate.isChecked())
+        self.annotText.setEnabled(self.actionAnnotate.isChecked())
+        self.annotText.setVisible(self.actionAnnotate.isChecked())
+        if self.actionAnnotate.isChecked():
+            self.annotText.setFocus()
+        else:
+            self.label_word.setFocus()
+
     def settingPrompt(self): # ask user to select the number of words to memorize
         prompt = SettingPrompt(self)
         prompt.exec_()
@@ -326,13 +390,27 @@ class GreSlayer(QMainWindow):
                 self.file_path = file_path
                 #update .slayerData file
                 with open(self.getFilePath('.slayerData'), 'w') as f:
-                    f.write(file_path)
+                    f.write(json.dumps({"version": self.version, "file_path": self.file_path})) # implement generalized json dumper later
             else:
                 QMessageBox.critical(self, 'Warning', 'Please select a valid file!', QMessageBox.Ok)
                 sys.exit()
 
         else:
             QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to change the file path', QMessageBox.Ok)
+    
+    def versionUpdate(self):
+        temp_df = pd.read_excel(self.file_path).dropna(axis = 0, subset = ['Word'])
+        columns = temp_df.columns
+        if 'Annotation' not in columns:
+            temp_df.insert(0, 'Annotation', [None for _ in range(0, len(temp_df))])
+        temp_df.to_excel(self.file_path, index=False)
+    def dictLookUp(self):
+        if not self.initialized:
+            return
+        word = self.sample_df.iloc[self.i]['Word']
+        subprocess.Popen(['open', 'dict://'+word])
+    def changeFocus(self):
+        self.label_word.setFocus()
 
 class Preferences(QDialog):
     def __init__(self, parent):
@@ -344,11 +422,13 @@ class Preferences(QDialog):
         self.phoSize_spin.setValue(self.parent.phonFontSize)
         self.engSize_spin.setValue(self.parent.engMFontSize)
         self.cnSize_spin.setValue(self.parent.cnMFontSize)
+        self.annotSize_spin.setValue(self.parent.annotFontSize)
         # initialize font combobox
         self.word_fontComboBox.setCurrentFont(QFont(self.parent.wordFont, self.parent.wordFontSize))
         self.pho_fontComboBox.setCurrentFont(QFont(self.parent.phonFont, self.parent.phonFontSize))
         self.eng_fontComboBox.setCurrentFont(QFont(self.parent.engMFont, self.parent.engMFontSize))
         self.cn_fontComboBox.setCurrentFont(QFont(self.parent.cnMFont, self.parent.cnMFontSize))
+        self.annot_fontComboBox.setCurrentFont(QFont(self.parent.annotFont, self.parent.annotFontSize))
 
         self.buttonBox.accepted.connect(self.on_accept)
         self.buttonBox.rejected.connect(self.close)
@@ -359,6 +439,7 @@ class Preferences(QDialog):
         self.parent.phonFontSize = self.phoSize_spin.value()
         self.parent.engMFontSize = self.engSize_spin.value()
         self.parent.cnMFontSize = self.cnSize_spin.value()
+        self.parent.annotFontSize = self.annotSize_spin.value()
 
         # functionalize later
         if self.word_checkBox.isChecked():
@@ -381,6 +462,11 @@ class Preferences(QDialog):
         else:
             self.parent.cnMFont = self.cn_fontComboBox.currentFont().toString().split(',')[0]
         
+        if self.annot_checkBox.isChecked():
+            self.parent.annotFont = ".AppleSystemUIFont"
+        else:
+            self.parent.annotFont = self.annot_fontComboBox.currentFont().toString().split(',')[0]
+
         self.update_fonts()
         self.close()
     
@@ -389,6 +475,7 @@ class Preferences(QDialog):
         self.parent.label_phonetic.setFont(QFont(self.parent.phonFont, self.parent.phonFontSize))
         self.parent.label_engMeaning.setFont(QFont(self.parent.engMFont, self.parent.engMFontSize))
         self.parent.label_cnMeaning.setFont(QFont(self.parent.cnMFont, self.parent.cnMFontSize))
+        self.parent.label_annot.setFont(QFont(self.parent.annotFont, self.parent.annotFontSize))
 
     
         
@@ -426,7 +513,7 @@ class TimeMachine(QDialog):
         # initalize data
         self.time_stamp = None
         ## get the time stamp
-        self.all_timeStamps = list(set(object.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized']))
+        self.all_timeStamps = list(set(object.df.columns) - set(object.dataFeatures))
         self.all_timeStamps = sorted(self.all_timeStamps, key=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), reverse=True)
   
         ## iterate through the time stamps and get the number of correct and incorrect

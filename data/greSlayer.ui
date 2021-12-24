@@ -17,7 +17,7 @@
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2">
+   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,10,10,1">
     <item>
      <widget class="QProgressBar" name="progressBar">
       <property name="value">
@@ -26,7 +26,13 @@
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="10,1,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="10,1">
+      <property name="leftMargin">
+       <number>5</number>
+      </property>
+      <property name="rightMargin">
+       <number>5</number>
+      </property>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -51,6 +57,28 @@
          <widget class="QLabel" name="phonetic_label">
           <property name="text">
            <string>Phonetics</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="annot_label">
+          <property name="font">
+           <font>
+            <pointsize>19</pointsize>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(252, 1, 7);
+</string>
+          </property>
+          <property name="text">
+           <string>Annotation</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -142,23 +170,16 @@
         </item>
        </layout>
       </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>4</width>
-          <height>2</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
      </layout>
     </item>
     <item>
      <layout class="QVBoxLayout" name="chooseButton">
+      <property name="leftMargin">
+       <number>5</number>
+      </property>
+      <property name="rightMargin">
+       <number>5</number>
+      </property>
       <item>
        <widget class="QPushButton" name="masterButton">
         <property name="sizePolicy">
@@ -200,6 +221,45 @@
       </item>
      </layout>
     </item>
+    <item>
+     <layout class="QHBoxLayout" name="annot_Layout">
+      <property name="leftMargin">
+       <number>5</number>
+      </property>
+      <property name="rightMargin">
+       <number>5</number>
+      </property>
+      <item>
+       <widget class="QPlainTextEdit" name="annot_plainTextEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="tabChangesFocus">
+         <bool>true</bool>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextEditable|Qt::TextEditorInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+        </property>
+        <property name="placeholderText">
+         <string>Annotate here:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="annotButton">
+        <property name="text">
+         <string>Annotate</string>
+        </property>
+        <property name="shortcut">
+         <string>Ctrl+Return</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -208,7 +268,7 @@
      <x>0</x>
      <y>0</y>
      <width>451</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGRE_SLAYER">
@@ -218,6 +278,8 @@
     <addaction name="actionSave"/>
     <addaction name="actionEye_Sore"/>
     <addaction name="actionFile_Directory"/>
+    <addaction name="actionAnnotate"/>
+    <addaction name="actionDictionary"/>
    </widget>
    <widget class="QMenu" name="menuMode">
     <property name="title">
@@ -279,6 +341,25 @@
   <action name="actionFile_Directory">
    <property name="text">
     <string>File Directory</string>
+   </property>
+  </action>
+  <action name="actionAnnotate">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Annotate</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+.</string>
+   </property>
+  </action>
+  <action name="actionDictionary">
+   <property name="text">
+    <string>Dictionary</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
  </widget>
