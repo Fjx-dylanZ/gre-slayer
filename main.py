@@ -103,10 +103,11 @@ class GreSlayer(QMainWindow):
         self.actionMeaning.triggered.connect(self.meaningToggle)
         self.actionAnnotate.triggered.connect(self.annotToggle)
         self.actionDictionary.triggered.connect(self.dictLookUp)
+        self.actionReview_Mode.triggered.connect(self.reviewMode)
         '''
         INITIALIZATION
         '''
-        self.version = '0.0.2'
+        self.version = '0.0.3'
         self.dataFeatures = ['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized', 'Annotation']
         self.today_correct_total = 0
         self.today_incorrect_total = 0
@@ -178,7 +179,16 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.df[self.dataFeatures + [self.timeMachine_timeStamp]].loc[lambda x: x[self.timeMachine_timeStamp] == False]
             self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
+            # tunr off lcd
+            self.lcd_today.hide()
+            self.lcd_correct.hide()
+            self.lcd_incorrect.hide()
 
+        elif mode == "Review":
+            self.mode = 'Review'
+            self.sample_df = self.df.query("`Total Memorized` > 0")
+            self.sample_df = self.sample_df.sample(n=len(self.sample_df))
+            self.numToday = len(self.sample_df)
             # tunr off lcd
             self.lcd_today.hide()
             self.lcd_correct.hide()
@@ -364,9 +374,28 @@ class GreSlayer(QMainWindow):
         prompt = SettingPrompt(self)
         prompt.exec_()
     
+    def reviewMode(self):
+        if not self.initialized:
+            num = len(self.df.query("`Total Memorized` > 0"))
+            if num == 0:
+                QMessageBox.information(self, 'Message',
+                    "You have not memorized any words yet. Please go to the main menu and start memorizing.")
+                return
+            # confitm to start
+            reply = QMessageBox.question(self, 'Message',
+                "You will be reviewing " + str(num) + " words. Are you sure to start?", QMessageBox.Yes |
+                QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.update_initilized("Review")
+            else:
+                return
+        else:
+            # Warning
+            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
+
     def timeMachinePrompt(self):
         if not self.initialized:
-            if len(set(self.df.columns) - set(['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized'])) == 0:
+            if len(set(self.df.columns) - set(self.dataFeatures)) == 0:
                 QMessageBox.critical(self, 'Warning', 'No time stamp found!', QMessageBox.Ok)
             else:
                 prompt = TimeMachine(self)
