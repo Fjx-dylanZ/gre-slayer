@@ -21,7 +21,7 @@ DONE customizability of fonts
 - AutoSave
 DONE Review Mode
 DONE New Words Only Mode
-- Undo Redo
+DONE Undo Redo
 - Custom review mode + count
 - App Packing
 
@@ -328,8 +328,47 @@ class GreSlayer(QMainWindow):
             if self.actionAnnotate.isChecked():
                 print('annotate')
                 self.annotText.setFocus()
+        # back slash
+        if e.key() == Qt.Key_Backslash:
+            self.undo()
 
-    
+    def undo(self):
+        if not self.initialized: return
+        if self.i == 0: return
+        self.masterButton.setEnabled(False)
+        self.unmasterButton.setEnabled(False)
+        self.i -= 1
+        self.progressBar.setValue(self.progressBar.value() - 1)
+        self.label_word.setText(self.sample_df.iloc[self.i]['Word'])
+        self.label_phonetic.setText(self.sample_df.iloc[self.i]['US Phonetics'])
+        self.label_engMeaning.setText('')
+        self.label_cnMeaning.setText('')
+        self.label_annot.setText('')
+
+        if self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] == True:
+            self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = np.nan
+            self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] -= 1
+            if self.mode == 'Default' or self.mode == "New Words Only":
+                self.today_correct_total -= 1
+                self.lcd_correct.display(self.today_correct_total)
+        elif self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] == False:
+            self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = np.nan
+            self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] -= 1
+            if self.mode == 'Default' or self.mode == "New Words Only":
+                self.today_incorrect_total -= 1
+                self.lcd_incorrect.display(self.today_incorrect_total)
+        else:
+            raise ValueError('Undo error')
+        self.df.loc[self.sample_df.iloc[self.i].name, 'Total Memorized'] -= 1
+        #if not self.integrityCheck():
+        #    raise ValueError('Undo error')
+    def integrityCheck(self):
+        if (self.df.loc[:, 'Total Correct'].astype(int) + self.df.loc[:, 'Total Incorrect'].astype(int) != self.df.loc[:, 'Total Memorized'].astype(int)).any():
+            print('Integrity check failed')
+            return False
+        return True
+        
+
     def closeEvent(self, event):
         if (self.initialized) and (self.i > 0): # handle some special cases
             reply = QMessageBox.question(self, 'Message',
@@ -351,6 +390,7 @@ class GreSlayer(QMainWindow):
     def perform_save_df(self):
         if self.initialized:
             self.df.to_excel(self.file_path, index=False)
+            self.outputConfig()
         else:
             # Warning
             reply = QMessageBox.question(self, 'Message',
@@ -479,8 +519,8 @@ class GreSlayer(QMainWindow):
                 "file_path": self.file_path, 
                 "wordFontSize": self.wordFontSize, 
                 "phonFontSize": self.phonFontSize, 
-                "engMFonSize": self.engMFonSize,
-                "cnMFonSize": self.cnMFonSize, 
+                "engMFontSize": self.engMFontSize,
+                "cnMFontSize": self.cnMFontSize, 
                 "annotFontSize": self.annotFontSize,
                 "wordFont": self.wordFont,
                 "phonFont": self.phonFont,
