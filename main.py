@@ -19,8 +19,10 @@ DONE Handle exception when entering time machine mode when already in time machi
 DONE custom data file directory
 DONE customizability of fonts
 - AutoSave
-- Review Mode
-- New Words Only Mode
+DONE Review Mode
+DONE New Words Only Mode
+- Undo Redo
+- Custom review mode + count
 - App Packing
 
 '''
@@ -104,10 +106,11 @@ class GreSlayer(QMainWindow):
         self.actionAnnotate.triggered.connect(self.annotToggle)
         self.actionDictionary.triggered.connect(self.dictLookUp)
         self.actionReview_Mode.triggered.connect(self.reviewMode)
+        self.actionNew_Words_Only.triggered.connect(self.newWordsOnlyMode)
         '''
         INITIALIZATION
         '''
-        self.version = '0.0.3'
+        self.version = '0.0.4'
         self.dataFeatures = ['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized', 'Annotation']
         self.today_correct_total = 0
         self.today_incorrect_total = 0
@@ -194,6 +197,16 @@ class GreSlayer(QMainWindow):
             self.lcd_correct.hide()
             self.lcd_incorrect.hide()
         
+        elif mode == "New Words Only":
+            self.mode = 'New Words Only'
+            self.sample_df = self.df.query("`Total Memorized` == 0")
+            self.sample_df = self.sample_df.sample(n=len(self.sample_df))
+            self.numToday = len(self.sample_df)
+            # tunr on lcd
+            self.lcd_today.show()
+            self.lcd_correct.show()
+            self.lcd_incorrect.show()
+        
         self.progressBar.setMaximum(self.numToday)
         '''
         update word, phonetic label, lcd_total for the first time
@@ -229,7 +242,7 @@ class GreSlayer(QMainWindow):
         self.label_annot.setText('')
         self.label_annot.setVisible(False)
         # update lcd number
-        if self.mode == 'Default':
+        if self.mode == 'Default' or self.mode == 'New Words Only':
             self.lcd_today.display(round(self.today_correct_total/(self.today_correct_total+self.today_incorrect_total), 2))
 
         # subsequent update, based on new word
@@ -261,7 +274,7 @@ class GreSlayer(QMainWindow):
         if self.clicked_word:
             self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = True
             self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] += 1
-            if self.mode == 'Default':
+            if self.mode == 'Default' or self.mode == "New Words Only":
                 self.today_correct_total += 1
                 self.lcd_correct.display(self.today_correct_total)
             self.next_word()
@@ -274,7 +287,7 @@ class GreSlayer(QMainWindow):
             #    self.annotText.setEnabled(False) # hacky, change later
             self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = False
             self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] += 1
-            if self.mode == 'Default':
+            if self.mode == 'Default' or self.mode == "New Words Only":
                 self.today_incorrect_total += 1
                 self.lcd_incorrect.display(self.today_incorrect_total)
             self.next_word()
@@ -392,6 +405,25 @@ class GreSlayer(QMainWindow):
         else:
             # Warning
             QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
+    
+    def newWordsOnlyMode(self):
+        if not self.initialized:
+            num = len(self.df.query("`Total Memorized` == 0"))
+            if num == 0:
+                QMessageBox.information(self, 'Message',
+                    "You have memorized all words! Hooray!")
+                return
+            # confitm to start
+            reply = QMessageBox.question(self, 'Message',
+                "You will be reviewing " + str(num) + " words. Are you sure to start?", QMessageBox.Yes |
+                QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.update_initilized("New Words Only")
+            else:
+                return
+        else:
+            # Warning
+            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
 
     def timeMachinePrompt(self):
         if not self.initialized:
@@ -418,8 +450,7 @@ class GreSlayer(QMainWindow):
             if file_path != '':
                 self.file_path = file_path
                 #update .slayerData file
-                with open(self.getFilePath('.slayerData'), 'w') as f:
-                    f.write(json.dumps({"version": self.version, "file_path": self.file_path})) # implement generalized json dumper later
+                self.outputConfig()
             else:
                 QMessageBox.critical(self, 'Warning', 'Please select a valid file!', QMessageBox.Ok)
                 sys.exit()
@@ -440,6 +471,24 @@ class GreSlayer(QMainWindow):
         subprocess.Popen(['open', 'dict://'+word])
     def changeFocus(self):
         self.label_word.setFocus()
+    
+    def outputConfig(self):
+        with open(self.getFilePath('.slayerData'), 'w') as f:
+            f.write(json.dumps({
+                "version": self.version, 
+                "file_path": self.file_path, 
+                "wordFontSize": self.wordFontSize, 
+                "phonFontSize": self.phonFontSize, 
+                "engMFonSize": self.engMFonSize,
+                "cnMFonSize": self.cnMFonSize, 
+                "annotFontSize": self.annotFontSize,
+                "wordFont": self.wordFont,
+                "phonFont": self.phonFont,
+                "engMFont": self.engMFont,
+                "cnMFont": self.cnMFont,
+                "annotFont": self.annotFont,
+                })
+                ) 
 
 class Preferences(QDialog):
     def __init__(self, parent):
@@ -507,7 +556,7 @@ class Preferences(QDialog):
         self.parent.label_annot.setFont(QFont(self.parent.annotFont, self.parent.annotFontSize))
 
     
-        
+    
 
 class SettingPrompt(QDialog):
     def __init__(self, object):
