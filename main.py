@@ -139,7 +139,8 @@ class GreSlayer(QMainWindow):
     def fresh_initialize(self):
         # Initialize data
         self.df = pd.read_excel(self.file_path).dropna(axis = 0, subset = ['Word'])
-        
+        self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']] = self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']].astype(str)
+
         self.totalNum = len(self.df)
         self.initialized = False
         self.numToday = 0
@@ -363,7 +364,8 @@ class GreSlayer(QMainWindow):
         #if not self.integrityCheck():
         #    raise ValueError('Undo error')
     def integrityCheck(self):
-        if (self.df.loc[:, 'Total Correct'].astype(int) + self.df.loc[:, 'Total Incorrect'].astype(int) != self.df.loc[:, 'Total Memorized'].astype(int)).any():
+        defiled = (self.df.loc[:, 'Total Correct'].astype(int) + self.df.loc[:, 'Total Incorrect'].astype(int) != self.df.loc[:, 'Total Memorized'].astype(int)).any()
+        if defiled:
             print('Integrity check failed')
             return False
         return True

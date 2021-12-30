@@ -3,3 +3,5 @@ venv/
 .DS_Store
 .slayerData
 test.ipynb
+.ipynb_checkpoints
+test1.ipynb
