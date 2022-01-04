@@ -13,6 +13,7 @@ import subprocess
 '''
 
 TODO LIST
+- Daily Goal
 DONE Handle exception in time machine mode when no previous data is available
 DONE Handle exception on saving when not initalized
 DONE Handle exception when entering time machine mode when already in time machine mode
@@ -35,10 +36,28 @@ class GreSlayer(QMainWindow):
     def first_time_check(self):
         try:
             with open(self.getFilePath('.slayerData'), 'r') as f:
-                self.slayerJSON = json.loads(f.readline())
-                self.file_path = self.slayerJSON['file_path']
-                if self.version != self.slayerJSON['version']:
+                slayerJSON = json.loads(f.readline())
+                self.file_path = slayerJSON['file_path']
+                if self.version != slayerJSON['version']:
                     raise Exception('Version Mismatch')
+
+                self.wordFontSize = slayerJSON['wordFontSize']
+                self.phonFontSize = slayerJSON['phonFontSize']
+                self.engMFontSize = slayerJSON['engMFontSize']
+                self.cnMFontSize = slayerJSON['cnMFontSize']
+                self.annotFontSize = slayerJSON['annotFontSize']
+                self.wordFont = slayerJSON['wordFont']
+                self.phonFont = slayerJSON['phonFont']
+                self.engMFont = slayerJSON['engMFont']
+                self.cnMFont = slayerJSON['cnMFont']
+                self.annotFont = slayerJSON['annotFont']
+                self.update_fonts()
+                
+                saved_date = slayerJSON['today_date']
+                saved_consolidated = int(slayerJSON['today_consolidated'])
+                if saved_date == datetime.today().strftime('%Y-%m-%d'):
+                    self.today_consolidated = saved_consolidated
+                    self.update_objective_label()
         except:
             self.first_time = True
             self.fileDirectorySelect()
@@ -110,8 +129,12 @@ class GreSlayer(QMainWindow):
         '''
         INITIALIZATION
         '''
-        self.version = '0.0.4'
+        self.version = '0.0.5'
         self.dataFeatures = ['Word', 'US Phonetics', 'Paraphrase (English)', 'Paraphrase (w/ POS)', 'Paraphrase', 'Total Correct', 'Total Incorrect', 'Total Memorized', 'Annotation']
+        self.today_date = datetime.now().strftime("%Y-%m-%d")
+        self.today_goal = 200
+        self.today_consolidated = 0 # the number of words that previously were not memorized but are now
+
         self.today_correct_total = 0
         self.today_incorrect_total = 0
         self.lcd_correct.display(0)
@@ -128,18 +151,20 @@ class GreSlayer(QMainWindow):
         self.annotButton.setVisible(False)
         #self.label_annot.setVisible(False)
 
-
         # check if the data file (".slayerData") integrity is intact
         self.first_time_check()
 
         self.fresh_initialize()
         # show the window
         self.show()
+    
+    def read_data(self):
+        self.df = self.df = pd.read_excel(self.file_path).dropna(axis = 0, subset = ['Word'])
+        self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']] = self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']].astype(str)
 
     def fresh_initialize(self):
         # Initialize data
-        self.df = pd.read_excel(self.file_path).dropna(axis = 0, subset = ['Word'])
-        self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']] = self.df[['Word', 'Paraphrase', 'Paraphrase (w/ POS)', 'Paraphrase (English)', 'US Phonetics']].astype(str)
+        self.read_data()
 
         self.totalNum = len(self.df)
         self.initialized = False
@@ -166,6 +191,15 @@ class GreSlayer(QMainWindow):
         self.masterButton.setEnabled(False)
         self.unmasterButton.setEnabled(False)
 
+    def hideShow_LCD(self, switch: bool):
+        if switch:
+            self.lcd_today.show()
+            self.lcd_correct.show()
+            self.lcd_incorrect.show()
+        else:
+            self.lcd_today.hide()
+            self.lcd_correct.hide()
+            self.lcd_incorrect.hide()
 
     def update_initilized(self, mode):
         self.initialized = True
@@ -174,9 +208,8 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.df.sample(n=self.numToday)
 
             #turn on lcd
-            self.lcd_today.show()
-            self.lcd_correct.show()
-            self.lcd_incorrect.show()
+            self.hideShow_LCD(True)
+
 
         elif mode == "Time Machine":
             self.mode = 'Time Machine'
@@ -184,9 +217,7 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
             # tunr off lcd
-            self.lcd_today.hide()
-            self.lcd_correct.hide()
-            self.lcd_incorrect.hide()
+            self.hideShow_LCD(False)
 
         elif mode == "Review":
             self.mode = 'Review'
@@ -194,9 +225,15 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
             # tunr off lcd
-            self.lcd_today.hide()
-            self.lcd_correct.hide()
-            self.lcd_incorrect.hide()
+            self.hideShow_LCD(False)
+        
+        elif mode == "Review New":
+            self.mode = 'Review New'
+            self.sample_df = self.df.query("`Total Correct` == 0")
+            self.sample_df = self.sample_df.sample(n=len(self.sample_df))
+            self.numToday = len(self.sample_df)
+            # tunr off lcd
+            self.hideShow_LCD(False)
         
         elif mode == "New Words Only":
             self.mode = 'New Words Only'
@@ -204,9 +241,7 @@ class GreSlayer(QMainWindow):
             self.sample_df = self.sample_df.sample(n=len(self.sample_df))
             self.numToday = len(self.sample_df)
             # tunr on lcd
-            self.lcd_today.show()
-            self.lcd_correct.show()
-            self.lcd_incorrect.show()
+            self.hideShow_LCD(True)
         
         self.progressBar.setMaximum(self.numToday)
         '''
@@ -246,6 +281,10 @@ class GreSlayer(QMainWindow):
         if self.mode == 'Default' or self.mode == 'New Words Only':
             self.lcd_today.display(round(self.today_correct_total/(self.today_correct_total+self.today_incorrect_total), 2))
 
+        # show last word on label_lastWord
+        self.label_lastWord.setText(f"{self.sample_df.iloc[self.i]['Word']}: {self.sample_df.iloc[self.i]['Paraphrase']}")
+
+
         # subsequent update, based on new word
         self.i += 1
         # update progress bar
@@ -269,6 +308,9 @@ class GreSlayer(QMainWindow):
         self.lcd_overall.display(round(self.sample_df.iloc[self.i]['Total Correct']/self.sample_df.iloc[self.i]['Total Memorized'], 2))
         self.label_word.setFocus() # necessary if annotation mode is on
     
+    def update_objective_label(self):
+        self.label_objective.setText(f"Today's Objective: {self.today_consolidated}/200")
+
     def masterWord(self):
         '''update df stats'''
         self.masterButton.setFocus()
@@ -278,6 +320,10 @@ class GreSlayer(QMainWindow):
             if self.mode == 'Default' or self.mode == "New Words Only":
                 self.today_correct_total += 1
                 self.lcd_correct.display(self.today_correct_total)
+            
+            if self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] > (self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] - 1):
+                self.today_consolidated += 1
+                self.update_objective_label()
             self.next_word()
         
     def unmasterWord(self):
@@ -352,6 +398,10 @@ class GreSlayer(QMainWindow):
             if self.mode == 'Default' or self.mode == "New Words Only":
                 self.today_correct_total -= 1
                 self.lcd_correct.display(self.today_correct_total)
+            # update objective label
+            if self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] > (self.df.loc[self.sample_df.iloc[self.i].name, 'Total Correct'] - 1):
+                self.today_consolidated -= 1
+                self.update_objective_label()
         elif self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] == False:
             self.df.loc[self.sample_df.iloc[self.i].name, self.time_stamp] = np.nan
             self.df.loc[self.sample_df.iloc[self.i].name, 'Total Incorrect'] -= 1
@@ -430,23 +480,26 @@ class GreSlayer(QMainWindow):
         prompt.exec_()
     
     def reviewMode(self):
-        if not self.initialized:
+        if self.initialized:
+            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
+            return
+        # Ask user to choose A or B
+        reply = QMessageBox.question(self, 'Message', 'Yes - Review all words\nNo - Review the words you have not got right yet', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
             num = len(self.df.query("`Total Memorized` > 0"))
             if num == 0:
-                QMessageBox.information(self, 'Message',
-                    "You have not memorized any words yet. Please go to the main menu and start memorizing.")
+                QMessageBox.critical(self, 'Warning', 'No words have been memorized yet', QMessageBox.Ok)
                 return
-            # confitm to start
-            reply = QMessageBox.question(self, 'Message',
-                "You will be reviewing " + str(num) + " words. Are you sure to start?", QMessageBox.Yes |
-                QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.update_initilized("Review")
-            else:
+            self.update_initilized('Review')
+        elif reply == QMessageBox.No:
+            num = len(self.df.query("`Total Correct` == 0"))
+            QMessageBox.information(self, 'Message', 'You will review {} new words'.format(num), QMessageBox.Ok)
+            if num == 0:
+                QMessageBox.critical(self, 'Warning', 'No new words have been memorized yet', QMessageBox.Ok)
                 return
+            self.update_initilized('Review New')
         else:
-            # Warning
-            QMessageBox.critical(self, 'Warning', 'You need to finish the current task in order to enter Time Machine mode', QMessageBox.Ok)
+            return
     
     def newWordsOnlyMode(self):
         if not self.initialized:
@@ -529,8 +582,17 @@ class GreSlayer(QMainWindow):
                 "engMFont": self.engMFont,
                 "cnMFont": self.cnMFont,
                 "annotFont": self.annotFont,
+                "today_date": self.today_date,
+                "today_consolidated": self.today_consolidated
                 })
                 ) 
+
+    def update_fonts(self):
+        self.label_word.setFont(QFont(self.wordFont, self.wordFontSize))
+        self.label_phonetic.setFont(QFont(self.phonFont, self.phonFontSize))
+        self.label_engMeaning.setFont(QFont(self.engMFont, self.engMFontSize))
+        self.label_cnMeaning.setFont(QFont(self.cnMFont, self.cnMFontSize))
+        self.label_annot.setFont(QFont(self.annotFont, self.annotFontSize))
 
 class Preferences(QDialog):
     def __init__(self, parent):
@@ -587,15 +649,8 @@ class Preferences(QDialog):
         else:
             self.parent.annotFont = self.annot_fontComboBox.currentFont().toString().split(',')[0]
 
-        self.update_fonts()
+        self.parent.update_fonts()
         self.close()
-    
-    def update_fonts(self):
-        self.parent.label_word.setFont(QFont(self.parent.wordFont, self.parent.wordFontSize))
-        self.parent.label_phonetic.setFont(QFont(self.parent.phonFont, self.parent.phonFontSize))
-        self.parent.label_engMeaning.setFont(QFont(self.parent.engMFont, self.parent.engMFontSize))
-        self.parent.label_cnMeaning.setFont(QFont(self.parent.cnMFont, self.parent.cnMFontSize))
-        self.parent.label_annot.setFont(QFont(self.parent.annotFont, self.parent.annotFontSize))
 
     
     

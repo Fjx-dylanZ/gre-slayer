@@ -17,13 +17,31 @@
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,10,10,1">
+   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,1,10,10,1">
     <item>
      <widget class="QProgressBar" name="progressBar">
       <property name="value">
        <number>24</number>
       </property>
      </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,2">
+      <item>
+       <widget class="QLabel" name="label_objective">
+        <property name="text">
+         <string>Today's Objective:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_lastWord">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="10,1">
@@ -268,7 +286,7 @@
      <x>0</x>
      <y>0</y>
      <width>451</width>
-     <height>24</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuGRE_SLAYER">
