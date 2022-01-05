@@ -284,6 +284,8 @@ class GreSlayer(QMainWindow):
         # show last word on label_lastWord
         self.label_lastWord.setText(f"{self.sample_df.iloc[self.i]['Word']}: {self.sample_df.iloc[self.i]['Paraphrase']}")
 
+        if (self.i % 15 == 0) and (self.i != 0):
+            self.perform_save_df()
 
         # subsequent update, based on new word
         self.i += 1
