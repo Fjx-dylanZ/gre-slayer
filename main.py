@@ -10,6 +10,8 @@ import json
 import os
 import subprocess
 
+from pandas.core.accessor import register_index_accessor
+
 '''
 
 TODO LIST
@@ -73,6 +75,8 @@ class GreSlayer(QMainWindow):
         uic.loadUi(self.getFilePath('data/greSlayer.ui'), self)
         # Set windown title
         self.setWindowTitle('GRE Slayer')
+        # Set window always on top
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         #Define widgets
         ## Labels
         self.label_word = self.findChild(QLabel, 'word_label')
@@ -601,6 +605,7 @@ class Preferences(QDialog):
         super(Preferences, self).__init__(parent)
         self.parent = parent
         uic.loadUi(self.parent.getFilePath('data/preferences.ui'), self)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         # initialize spinbox value
         self.wordSize_spin.setValue(self.parent.wordFontSize)
         self.phoSize_spin.setValue(self.parent.phonFontSize)
@@ -661,6 +666,7 @@ class SettingPrompt(QDialog):
     def __init__(self, object):
         super(SettingPrompt, self).__init__()
         uic.loadUi(object.getFilePath('data/prompt.ui'), self)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         # initalize data
         self.number = 0
         # Define widgets
@@ -687,10 +693,16 @@ class TimeMachine(QDialog):
     def __init__(self, object):
         super(TimeMachine, self).__init__()
         uic.loadUi(object.getFilePath('data/timeMachine.ui'), self)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         # initalize data
         self.time_stamp = None
         ## get the time stamp
         self.all_timeStamps = list(set(object.df.columns) - set(object.dataFeatures))
+        if len(self.all_timeStamps) == 0:
+            # warning
+            QMessageBox.critical(self, "Time Machine", "No time stamp found!")
+            self.close()
+            return
         self.all_timeStamps = sorted(self.all_timeStamps, key=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'), reverse=True)
   
         ## iterate through the time stamps and get the number of correct and incorrect
